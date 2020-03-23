@@ -5,7 +5,6 @@ import pickle
 import networkx as nx
 from concurrent.futures import ThreadPoolExecutor
 from settings import token, my_id, api_v, max_workers, delay, deep
-import matplotlib.pyplot as plt
 
 
 def force(f, delay=delay):

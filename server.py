@@ -3,6 +3,8 @@ import socketserver
 import json
 import cgi
 import urllib.parse
+from get_chain import * 
+from settings import *
 
 #Класс (json_name_workspace) - с строковыми константами для отправки/парсинга в джейсоне
 class  jsnw():
@@ -27,7 +29,6 @@ class Server(BaseHTTPRequestHandler):
     def do_GET(self):
         self._set_headers()
         self.parse_parameters_and_run_API_method()
-	
 	#===================================================================================================================
 	#
 	#													Api Methods
@@ -43,10 +44,17 @@ class Server(BaseHTTPRequestHandler):
         if parameters_string != "" :
             # Проверяем метод API, который надо запустить
             if parameters_dict["method"] == jsnw.method.handshake:
+                users = list(map(int, parameters_dict["users"][0].split(",")))
+                print(users)
+                #вставить это в резалт
+                test1 = VkFriends(token, my_id, api_v, max_workers)
+                #test1.get_chains_test_version(96754483, 44807888)
+                #test1.get_chains_test_version(users[0], users[1])
                 self.wfile.write(json.dumps({
                     jsnw.str_resultCode: "1",
                     jsnw.str_result_description: "Success.",
-                    jsnw.str_result: [parameters_dict["users"]]}).encode())
+                    jsnw.str_result: test1.get_chains_test_version(users[0], users[1])
+                    }).encode())
             # Если параметр "method" не является одним из доступных списка API
             else :
                 self.make_response_with_not_enought_params()
@@ -54,12 +62,14 @@ class Server(BaseHTTPRequestHandler):
         else :
             self.wfile.write(json.dumps({
                 jsnw.str_resultCode: "0",
-                jsnw.str_result_description: "Success with nothing (No parameters given)." }).encode())
+                jsnw.str_result_description: "Success with nothing (No parameters given)." 
+                }).encode())
 
     def make_response_with_not_enought_params(self):
         self.wfile.write(json.dumps({
                     jsnw.str_resultCode: "-1",
-                    jsnw.str_result_description: "Can not resolve request with this paramters." }).encode())
+                    jsnw.str_result_description: "Can not resolve request with this paramters." 
+                    }).encode())
 
 	#===================================================================================================================
 	#
