@@ -42,6 +42,17 @@
 }
 ```
 
-# Front IOS-App
+## Run Script On VDS
+### Update
+- `ssh root@<SSH IP>` - Connect to SSH
+- `<enter password to SSH>` - Password to SSH
+- `cd /home/h/VKHandShakes-Server/` - Open server-project directory
+- `git pull origin master` - pull changes from master
+- `<enter username>` - enter GIT username (used 1 time for SSH session)
+- `<enter password>` - enter GIT password (used 1 time for SSH session)
 
+### Run
+- `python3.8 home/h/VKHandShakes-Server/server.py` - run server python script
+
+# Front IOS-App
 ...
