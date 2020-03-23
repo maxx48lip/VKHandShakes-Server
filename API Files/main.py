@@ -2,10 +2,11 @@ import sys
 import time
 import requests
 import pickle
-import networkx
+import networkx as nx
 from concurrent.futures import ThreadPoolExecutor
 from settings import token, my_id, api_v, max_workers, delay, deep
 import matplotlib.pyplot as plt
+
 
 def force(f, delay=delay):
     """При неудачном запросе сделать паузу и попробовать снова"""
@@ -36,6 +37,7 @@ class VkFriends():
     """
     parts = lambda lst, n=25: (lst[i:i + n] for i in iter(range(0, len(lst), n)))
     make_targets = lambda lst: ",".join(str(id) for id in lst)
+    result = {}
 
     def __init__(self, *pargs):
         try:
@@ -95,47 +97,78 @@ class VkFriends():
 
         return result
 
+    # @force
+    def worker(self, i):
+        r = requests.get(self.request_url('execute.deepFriends', 'targets=%s' % VkFriends.make_targets(i),
+                                          access_token=True)).json()
+        if 'error' in r.keys():
+            error = VkException(
+                'Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
+            print(error)
+        if 'execute_errors' in r.keys():
+            error = VkException(
+                'Execute errors: %s ' % (r['execute_errors']))
+            print(error)
+        r = r['response']
+        for x, id in enumerate(i):
+            self.result[id] = tuple(r[x]["items"]) if r[x] else None
+        print('ids_counter = ' + str(len(self.result)))
+        time.sleep(delay)
+
+    def fill_result(self, friends):
+        with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
+            [pool.submit(self.worker, i) for i in VkFriends.parts(friends)]
+
     def deep_friends(self, deep):
         """
         Возвращает словарь с id пользователей, которые являются друзьями, или друзьями-друзей (и т.д. в зависимсти от
         deep - глубины поиска) указаннного пользователя
         """
-        result = {}
-        # @force
-        def worker(i):
-            r = requests.get(self.request_url('execute.deepFriends', 'targets=%s' % VkFriends.make_targets(i),
-                                              access_token=True)).json()
-            if 'error' in r.keys():
-                error = VkException(
-                    'Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
-                print(error)
-            if 'execute_errors' in r.keys():
-                error = VkException(
-                    'Execute errors: %s ' % (r['execute_errors']))
-                print(error)
-            r = r['response']
-            for x, id in enumerate(i):
-                result[id] = tuple(r[x]["items"]) if r[x] else None
-            print('ids_counter = ' + str(len(result)))
-            time.sleep(delay)
-
-        def fill_result(friends):
-            with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
-                [pool.submit(worker, i) for i in VkFriends.parts(friends)]
 
         for i in range(deep):
-            if result:
+            if self.result:
                 # те айди, которых нет в ключах + не берем id:None
-                fill_result(list(
-                    set([item for sublist in result.values() if sublist for item in sublist]) - set(
-                        result.keys())))
+                self.fill_result(list(
+                    set([item for sublist in self.result.values() if sublist for item in sublist]) - set(
+                        self.result.keys())))
             else:
-                fill_result(
+                self.fill_result(
                     requests.get(
                         self.request_url('friends.get', 'user_id=%s' % self.my_id, access_token=True)).json()[
                         'response']["items"])
+        return self.result
 
-        return result
+    def fill_result_work(self, friends, id2):
+        with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
+            if id2 not in set([item for sublist in self.result.values() if sublist for item in sublist]):
+                [pool.submit(self.worker, i) for i in VkFriends.parts(friends)]
+
+    def get_chains_test_version(self, id1, id2):
+        while id2 not in set([item for sublist in self.result.values() if sublist for item in sublist]):
+            if self.result:
+                self.fill_result_work(list(
+                    set([item for sublist in self.result.values() if sublist for item in sublist]) - set(
+                        self.result.keys())), id2)
+            else:
+                id1s_friends_id = requests.get(
+                    self.request_url('friends.get', 'user_id=%s' % id1, access_token=True)).json()['response']["items"]
+                self.fill_result_work(id1s_friends_id, id2)
+
+        for id in list(self.result):
+            if self.result[id] is None:
+                self.result.pop(id)
+
+        g = nx.Graph(directed=False)
+        g.add_node(id1)
+        for i in id1s_friends_id:
+            g.add_edge(id1, i)
+
+        for i in self.result:
+            g.add_node(i)
+            for j in self.result[i]:
+                g.add_edge(i, j)
+
+        return list(nx.all_shortest_paths(g, id1, id2))
 
     def from_where_gender(self):
         """
@@ -179,41 +212,11 @@ class VkFriends():
 
 if __name__ == '__main__':
     # df = VkFriends.save_load_deep_friends('deep_friends_dct', False)
+    # a = VkFriends(token, my_id, api_v, max_workers)
+    # print(a.my_name, a.my_last_name, a.my_id, a.photo)
+    # df = a.deep_friends(deep)
+    # VkFriends.save_load_deep_friends('deep1_my_friends2_dct', True, df)
+    id1 = 96754483
+    id2 = 99150761
     a = VkFriends(token, my_id, api_v, max_workers)
-    print(a.my_name, a.my_last_name, a.my_id, a.photo)
-    df = a.deep_friends(deep)
-    VkFriends.save_load_deep_friends('deep1_my_friends_dct', True, df)
-# print(pickle.load( open('deep_friends_dct', "rb" )))
-# print(a.from_where_gender())
-
-
-
-
-# tst = list(df.keys())
-# tst.sort()
-#
-# g = networkx.Graph(directed=False)
-# for i in graph:
-#     g.add_node(i)
-#     for j in graph[i]:
-#         if i != j and i in friend_ids and j in friend_ids:
-#             g.add_edge(i, j)
-#
-# for id in df:
-#     if df[id] is None:
-#         df.pop(id)
-#
-#
-# g = networkx.Graph(directed=False)
-# for i in df:
-#     g.add_node(i)
-#     for j in df[i]:
-#         if i != j and i in list(df) and j in list(df):
-#             g.add_edge(i, j)
-
-
-
-
-
-
-
+    print(a.get_chains_test_version(id1, id2))
