@@ -14,6 +14,7 @@ import networkx as nx
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import json
 
 
 class VkException(Exception):
@@ -51,7 +52,7 @@ class VkWorker:
         self._debug_print('id2:', user2_name, user2_last_name, user2_photo, user2_id)
         while True:
             if self._is_paths_from_id1_to_id2(user1_id, user2_id):
-                return list(nx.all_shortest_paths(self.g, user1_id, user2_id))
+                return self.make_output_json(list(nx.all_shortest_paths(self.g, user1_id, user2_id)))
             self._download_queue_builder(user1_id, user2_id)
             self._database_builder()
             self._graph_builder()
@@ -138,6 +139,8 @@ class VkWorker:
         nx.write_adjlist(self.g, self._graph_path)
 
     def base_info(self, ids):
+        self.t.update()
+        self.t.save()
         r = requests.get(
             self._request_url('users.get', 'user_ids=%s&fields=photo' % ids, 0)).json()
         if 'error' in r.keys():
@@ -153,6 +156,33 @@ class VkWorker:
 
     def _id_set(self, lst):
         return (lst[i:i + self._max_in_set] for i in iter(range(0, len(lst), self._max_in_set)))
+
+    def make_output_json(self, output_chains_list, result_code=None, result_description=None):
+        output = {}
+        all_chains_list = []
+        for chain in output_chains_list:
+            chain_dict = {}
+            chain_list = []
+            for id in chain:
+                user_dict = {}
+                user_param = {}
+                if isinstance(id, str):
+                    id = int(id)
+                user_name, user_last_name, user_photo, user_id = self.base_info(id)
+                user_url = 'https://vk.com/id{}'.format(id)
+                user_param.update({"name": user_name})
+                user_param.update({"last_name": user_last_name})
+                user_param.update({"url": user_url})
+                user_param.update({"photo": user_photo})
+                user_dict.update({"user": user_param})
+                chain_list.append(user_dict)
+            chain_dict.update({"chain": chain_list})
+            all_chains_list.append(chain_dict)
+        output.update({"result": all_chains_list})
+        output.update({"resultCode": "1"})
+        output.update({"resultDescription": 'Success'})
+        return json.dumps(output, sort_keys=True, indent=4, ensure_ascii=False, separators=(',', ': '))
+
 
     @staticmethod
     def _make_targets(lst):
@@ -248,5 +278,16 @@ class Token:
 
 
 if __name__ == '__main__':
-    w = VkWorker(graph_name='test11', debug=True)
-    print(w.get_chains('221436497', 'sashaspilberg'))
+    w = VkWorker(graph_name='test', debug=True)
+    print(w.get_chains('221436497', 'st.priboi'))
+
+# TODO: Traceback (most recent call last):
+#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 280, in <module>
+#     print(w.get_chains('221436497', 'sashaspilberg'))
+#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 55, in get_chains
+#     return self.make_output_json(list(nx.all_shortest_paths(self.g, user1_id, user2_id)))
+#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 171, in make_output_json
+#     user_name, user_last_name, user_photo, user_id = self.base_info(id)
+#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 147, in base_info
+#     raise VkException('Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
+# __main__.VkException: Error message: Too many requests per second Error code: 6
