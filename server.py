@@ -3,8 +3,7 @@ import socketserver
 import json
 import cgi
 import urllib.parse
-from get_chain import * 
-from settings import *
+from vk_handshake_worker import VkWorker, Token, VkException
 
 #Класс (json_name_workspace) - с строковыми константами для отправки/парсинга в джейсоне
 class  jsnw():
@@ -47,14 +46,12 @@ class Server(BaseHTTPRequestHandler):
                 users = list(map(int, parameters_dict["users"][0].split(",")))
                 print(users)
                 #вставить это в резалт
-                test1 = VkFriends(token, my_id, api_v, max_workers)
-                #test1.get_chains_test_version(96754483, 44807888)
+                #test1 = VkWorker(debug=True)
+                test1 = VkWorker(debug=True).get_chains(users[0],users[1])
+                print(test1)
+                self.wfile.write(test1)
+                print("123")
                 #test1.get_chains_test_version(users[0], users[1])
-                self.wfile.write(json.dumps({
-                    jsnw.str_resultCode: "1",
-                    jsnw.str_result_description: "Success.",
-                    jsnw.str_result: test1.get_chains_test_version(users[0], users[1])
-                    }).encode())
             # Если параметр "method" не является одним из доступных списка API
             else :
                 self.make_response_with_not_enought_params()
