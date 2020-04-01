@@ -15,7 +15,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import json
-import vk_token
+from vk_token import VKToken
 
 
 class VkException(Exception):
@@ -37,7 +37,7 @@ class VkWorker:
         self._database = {}
         self._download_queue = []
         self._max_in_set = 25
-        self.t = Token()
+        self.t = VKToken(debug=True)
         self._graphs_dir = os.path.join(os.path.dirname(__file__), 'Graphs')
         self._graph_path = os.path.join(self._graphs_dir, self.graph_name)
         if os.path.exists(self._graph_path):

@@ -10,7 +10,7 @@ import configparser
 import time
 import requests
 
-class Token:
+class VKToken:
     """
     Метод update возвращает список рабочих токенов
     Метод save сохраняет settings.ini
@@ -18,7 +18,7 @@ class Token:
 
     def __init__(self, debug=False):
         self.debug = debug
-        self._settings_path = 'settings.ini'
+        self._settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
         self._returned_token_num_list = []
         self.token_list = []
         self.number_of_token = 0
@@ -29,6 +29,7 @@ class Token:
         else:
             self.config = configparser.ConfigParser()
             self.config.read(self._settings_path)
+            print(self.config)
             self.token_list = self.update(update=True)
 
     def _request_url(self, method_name, parameters, token_i):  # with token

@@ -3,7 +3,7 @@ import socketserver
 import json
 import cgi
 import urllib.parse
-from vk_handshake_worker import VkWorker, Token, VkException
+from vk_handshake_worker import *
 
 #Класс (json_name_workspace) - с строковыми константами для отправки/парсинга в джейсоне
 class  jsnw():
