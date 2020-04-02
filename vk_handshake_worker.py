@@ -1,21 +1,20 @@
 """
 Created on 25.03.2020 15:23
 
-Description: опрос сервера, весисление цепочек
+Description: опрос сервера, вычисление цепочек
 
 Author: YJ
 """
 
-import configparser
 import os
 import time
-import requests
-import networkx as nx
-import random
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
 import json
-from vk_token import VKToken
+import random
+import requests
+import threading
+import configparser
+import networkx as nx
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class VkException(Exception):
@@ -32,12 +31,12 @@ class VkWorker:
         self.graph_name = graph_name
         self._debug = debug
         self.api_v = '5.103'
-        self.delay = 0.4
+        self.delay = 0.36
         self._result = {}
         self._database = {}
         self._download_queue = []
         self._max_in_set = 25
-        self.t = VKToken(debug=True)
+        self.t = Token()
         self._graphs_dir = os.path.join(os.path.dirname(__file__), 'Graphs')
         self._graph_path = os.path.join(self._graphs_dir, self.graph_name)
         if os.path.exists(self._graph_path):
@@ -49,8 +48,10 @@ class VkWorker:
         # TODO: цпочки заданной длины (меньше или больше и тд)
         user1_name, user1_last_name, user1_photo, user1_id = self.base_info(id1)
         user2_name, user2_last_name, user2_photo, user2_id = self.base_info(id2)
-        self._debug_print('id1:', user1_name, user1_last_name, user1_photo, user1_id)
-        self._debug_print('id2:', user2_name, user2_last_name, user2_photo, user2_id)
+        if self._debug:
+            print('id1:', user1_name, user1_last_name, user1_photo, user1_id)
+        if self._debug:
+            print('id2:', user2_name, user2_last_name, user2_photo, user2_id)
         while True:
             if self._is_paths_from_id1_to_id2(user1_id, user2_id):
                 return self.make_output_json(list(nx.all_shortest_paths(self.g, user1_id, user2_id)))
@@ -64,6 +65,9 @@ class VkWorker:
             for j in self._database[i]:
                 self.g.add_edge(i, j)
         self._save_graph()
+        self._database = {}
+        if self._debug:
+            print('{} nodes in graph'.format(self.g.order()))
         return self.g
 
     def _database_builder(self):
@@ -86,16 +90,19 @@ class VkWorker:
         r = requests.get(
             self._request_url('execute.deepFriends', 'targets=%s' % self._make_targets(set), token_i)).json()
         if 'error' in r.keys():
-            self._debug_print('Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
+            if self._debug:
+                print('Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
         if 'execute_errors' in r.keys():
             if 'Rate limit reached' in [r['execute_errors'][i]['error_msg'] for i in range(len(r['execute_errors']))]:
                 return [set, token_i]
-            self._debug_print('Execute errors: %s ' % (r['execute_errors']))
-        r = r["response"]
+            if self._debug:
+                print('Execute errors: %s ' % (r['execute_errors']))
+        r = r['response']
         for x, id in enumerate(set):
             if r[x]:
                 self._database[id] = tuple(r[x]["items"])
-        self._debug_print('ids_counter = ' + str(len(self._database)))
+        # if self._debug:
+        #     print('ids_counter = ' + str(len(self._database)))
         time.sleep(self.delay)
 
     def _download_queue_builder(self, id1, id2):
@@ -140,15 +147,18 @@ class VkWorker:
         nx.write_adjlist(self.g, self._graph_path)
 
     def base_info(self, ids):
+        # TODO: сделать многопоточность через процедуру вк
         self.t.update()
         self.t.save()
         r = requests.get(
             self._request_url('users.get', 'user_ids=%s&fields=photo' % ids, 0)).json()
+        self._debug_print(r)
+        time.sleep(self.delay)
         if 'error' in r.keys():
             raise VkException('Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
         r = r['response'][0]
         if 'deactivated' in r.keys():
-            raise VkException("User deactivated")
+            return r['first_name'], r['last_name'], r['photo'], r['id']
         return r['first_name'], r['last_name'], r['photo'], r['id']  # r['id'] - int
 
     def _debug_print(self, *arg):
@@ -161,7 +171,9 @@ class VkWorker:
     def make_output_json(self, output_chains_list, result_code=None, result_description=None):
         output = {}
         all_chains_list = []
-        for chain in output_chains_list:
+        for chain_num, chain in enumerate(output_chains_list):
+            if self._debug:
+                print('chain number {} out of {}'.format(chain_num, len(output_chains_list)))
             chain_dict = {}
             chain_list = []
             for id in chain:
@@ -172,7 +184,7 @@ class VkWorker:
                 user_name, user_last_name, user_photo, user_id = self.base_info(id)
                 user_url = 'https://vk.com/id{}'.format(id)
                 user_param.update({"name": user_name})
-                user_param.update({"lastName": user_last_name})
+                user_param.update({"last_name": user_last_name})
                 user_param.update({"url": user_url})
                 user_param.update({"photo": user_photo})
                 user_dict.update({"user": user_param})
@@ -182,26 +194,101 @@ class VkWorker:
         output.update({"result": all_chains_list})
         output.update({"resultCode": "1"})
         output.update({"resultDescription": 'Success'})
-        funcResult = json.dumps(output, sort_keys=True, indent=4, ensure_ascii=False, separators=(',', ': ')).encode()
-        self._debug_print(funcResult.decode())
-        return funcResult
+        return json.dumps(output, sort_keys=True, indent=4, ensure_ascii=False, separators=(',', ': ')).encode()
 
     @staticmethod
     def _make_targets(lst):
         return ",".join(str(id) for id in lst)
 
 
-if __name__ == '__main__':
-    w = VkWorker(graph_name='test', debug=True)
-    print(w.get_chains('221436497', 'sasha_gt'))
+class Token:
+    """
+    Метод update возвращает список рабочих токенов
+    Метод save сохраняет settings.ini
+    """
 
-# TODO: Traceback (most recent call last):
-#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 280, in <module>
-#     print(w.get_chains('221436497', 'sashaspilberg'))
-#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 55, in get_chains
-#     return self.make_output_json(list(nx.all_shortest_paths(self.g, user1_id, user2_id)))
-#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 171, in make_output_json
-#     user_name, user_last_name, user_photo, user_id = self.base_info(id)
-#   File "D:/Desktop/1/!!!projects/vk_kandshake/VKHandShakes-Server/API Files/vk_handshake_worker.py", line 147, in base_info
-#     raise VkException('Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
-# __main__.VkException: Error message: Too many requests per second Error code: 6
+    def __init__(self, debug=False):
+        self.debug = debug
+        self._settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
+        self._returned_token_num_list = []
+        self.token_list = []
+        self.number_of_token = 0
+        self._api_v = '5.103'
+        if not os.path.exists(self._settings_path):
+            self._debug_print('settings.ini is not exist')
+            return
+        else:
+            self.config = configparser.ConfigParser()
+            self.config.read(self._settings_path)
+            self.token_list = self.update(update=True)
+
+    def _request_url(self, method_name, parameters, token_i):  # with token
+        req_url = 'https://api.vk.com/method/{method_name}?{parameters}&v={api_v}&access_token={token}'.format(
+            method_name=method_name, api_v=self._api_v, parameters=parameters, token=token_i)
+        return req_url
+
+    def save(self):
+        with open(self._settings_path, 'w') as configfile:
+            self.config.write(configfile)
+
+    def update(self, broken_token_num_lst=[], update=False):
+        """
+        broken_token_num_lst не уазывается при первом вызове
+        broken_token_num_lst = [0, 1, ...]
+        _returned_token_num_list = [0, 1, ...]
+        Returns: возвращает список рабочих токенов
+        """
+        self.token_list = []
+        self._returned_token_num_list = []
+        test_targets = '10'
+        stop_period = 3600  # время, на протяжении которого токен недоступен после превышения количества запросов
+
+        if len(broken_token_num_lst) != 0:
+            for token_num in broken_token_num_lst:
+                self.config.set('token_{}'.format(self._returned_token_num_list[token_num]), 'stop_time',
+                                str(time.time()))
+                self.config.set('token_{}'.format(self._returned_token_num_list[token_num]), 'state', '0')
+
+        number_of_tokens = int(self.config.get('settings', 'number_of_tokens'))
+        for token_num in range(number_of_tokens):
+            token_i = self.config.get('token_{}'.format(token_num + 1), 'value')
+            if update:
+                r = requests.get(self._request_url('execute.deepFriends', 'targets=%s' % test_targets, token_i)).json()
+                if 'error' not in r.keys() and 'execute_errors' not in r.keys():
+                    self.config.set('token_{}'.format(token_num + 1), 'stop_time', '')
+                    self.config.set('token_{}'.format(token_num + 1), 'state', '1')
+                    self.token_list.append(token_i)
+                    self._returned_token_num_list.append(token_num)
+                else:
+                    self.config.set('token_{}'.format(token_num + 1), 'stop_time', str(time.time()))
+                    self.config.set('token_{}'.format(token_num + 1), 'state', '0')
+            else:
+                if self.config.get('token_{}'.format(token_num + 1), 'state') == '1':
+                    self.token_list.append(token_i)
+                elif self.config.get('token_{}'.format(token_num + 1), 'state') == '0':
+                    stop_time = self.config.get('token_{}'.format(token_num + 1), 'stop_time')
+                    if stop_time == '':
+                        stop_time = '0'
+                    if time.time() - float(stop_time) > stop_period:
+                        r = requests.get(
+                            self._request_url('execute.deepFriends', 'targets=%s' % test_targets, token_i)).json()
+                        if 'error' not in r.keys() and 'execute_errors' not in r.keys():
+                            self.config.set('token_{}'.format(self._returned_token_num_list[token_num]), 'stop_time',
+                                            '')
+                            self.config.set('token_{}'.format(self._returned_token_num_list[token_num]), 'state', '1')
+                            self.token_list.append(token_i)
+                            self._returned_token_num_list.append(token_num)
+                else:
+                    self._debug_print('ini \'state\' error')
+                    return
+            self.number_of_token = len(self.token_list)
+        return self.token_list
+
+    def _debug_print(self, *arg):
+        if self.debug:
+            print(*arg)
+
+
+if __name__ == '__main__':
+    w = VkWorker(graph_name='test2', debug=True)
+    print(w.get_chains('221436497', 'evgencomedian').decode())
