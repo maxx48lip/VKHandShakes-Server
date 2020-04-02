@@ -46,12 +46,14 @@ class VkWorker:
 
     def get_chains(self, id1, id2):
         # TODO: цпочки заданной длины (меньше или больше и тд)
-        user1_name, user1_last_name, user1_photo, user1_id = self.base_info(id1)
-        user2_name, user2_last_name, user2_photo, user2_id = self.base_info(id2)
+        user1_name, user1_last_name, user1_photo, user1_id = self._base_info([id1], one_id=True)
+        user2_name, user2_last_name, user2_photo, user2_id = self._base_info([id2], one_id=True)
         if self._debug:
             print('id1:', user1_name, user1_last_name, user1_photo, user1_id)
         if self._debug:
             print('id2:', user2_name, user2_last_name, user2_photo, user2_id)
+        if user1_id == user2_id:
+            return self.make_output_json([[user1_id]])
         while True:
             if self._is_paths_from_id1_to_id2(user1_id, user2_id):
                 return self.make_output_json(list(nx.all_shortest_paths(self.g, user1_id, user2_id)))
@@ -146,34 +148,47 @@ class VkWorker:
     def _save_graph(self):
         nx.write_adjlist(self.g, self._graph_path)
 
-    def base_info(self, ids):
-        # TODO: сделать многопоточность через процедуру вк
+    def _base_info(self, ids, one_id=False):
+        """
+        Args:
+            ids: список id
+        Returns:    если нексолько id: слловарь {id1: {"first_name":"","last_name":"","photo":""}, id2: ...}
+                    если один id: 'first_name', 'last_name', 'photo', 'id'  // 'id' - int
+        """
+        base_info_dict = {}
+        ids = list(set(ids))
+        ids_str = self._make_targets(ids)
         self.t.update()
         self.t.save()
-        r = requests.get(
-            self._request_url('users.get', 'user_ids=%s&fields=photo' % ids, 0)).json()
+        r = requests.get(self._request_url('users.get', 'user_ids=%s&fields=photo' % ids_str, 0)).json()
         self._debug_print(r)
         time.sleep(self.delay)
         if 'error' in r.keys():
             raise VkException('Error message: %s Error code: %s' % (r['error']['error_msg'], r['error']['error_code']))
-        r = r['response'][0]
-        if 'deactivated' in r.keys():
-            return r['first_name'], r['last_name'], r['photo'], r['id']
-        return r['first_name'], r['last_name'], r['photo'], r['id']  # r['id'] - int
+        r = r['response']
+        for r_dict in r:
+            base_info_dict.update({r_dict['id']: dict(first_name=r_dict['first_name'], last_name=r_dict['last_name'],
+                                                      photo=r_dict['photo'])})
+        if len(base_info_dict.keys()) == 1 and one_id:
+            id = list(base_info_dict.keys())[0]
+            v = base_info_dict[id]
+            return v['first_name'], v['last_name'], v['photo'], id
+        return base_info_dict
 
-    def _debug_print(self, *arg):
-        if self._debug:
-            print(*arg)
-
-    def _id_set(self, lst):
-        return (lst[i:i + self._max_in_set] for i in iter(range(0, len(lst), self._max_in_set)))
+    def _base_info_collections(self, output_chains_list):
+        id_in_output_chains = list(set([id for chain in output_chains_list for id in chain]))
+        # TODO разобраться, почему некоторые излы графа имеют тип str
+        for id_num, id in enumerate(id_in_output_chains):
+            if isinstance(id, str):
+                id_in_output_chains[id_num] = int(id)
+        # TODO сделать ограничение в 1000 id в id_in_output_chains
+        return self._base_info(id_in_output_chains)
 
     def make_output_json(self, output_chains_list, result_code=None, result_description=None):
         output = {}
         all_chains_list = []
+        base_info_collections = self._base_info_collections(output_chains_list)
         for chain_num, chain in enumerate(output_chains_list):
-            if self._debug:
-                print('chain number {} out of {}'.format(chain_num, len(output_chains_list)))
             chain_dict = {}
             chain_list = []
             for id in chain:
@@ -181,7 +196,9 @@ class VkWorker:
                 user_param = {}
                 if isinstance(id, str):
                     id = int(id)
-                user_name, user_last_name, user_photo, user_id = self.base_info(id)
+                user_name = base_info_collections[id]['first_name']
+                user_last_name = base_info_collections[id]['last_name']
+                user_photo = base_info_collections[id]['photo']
                 user_url = 'https://vk.com/id{}'.format(id)
                 user_param.update({"name": user_name})
                 user_param.update({"lastName": user_last_name})
@@ -195,6 +212,13 @@ class VkWorker:
         output.update({"resultCode": "1"})
         output.update({"resultDescription": 'Success'})
         return json.dumps(output, sort_keys=True, indent=4, ensure_ascii=False, separators=(',', ': ')).encode()
+
+    def _debug_print(self, *arg):
+        if self._debug:
+            print(*arg)
+
+    def _id_set(self, lst):
+        return (lst[i:i + self._max_in_set] for i in iter(range(0, len(lst), self._max_in_set)))
 
     @staticmethod
     def _make_targets(lst):
@@ -291,4 +315,4 @@ class Token:
 
 if __name__ == '__main__':
     w = VkWorker(graph_name='test2', debug=True)
-    print(w.get_chains('221436497', 'evgencomedian').decode())
+    print(w.get_chains('ytxcov', '352762786').decode())
