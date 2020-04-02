@@ -7,7 +7,7 @@ from vk_handshake_worker import *
 
 #Класс (json_name_workspace) - с строковыми константами для отправки/парсинга в джейсоне
 class  jsnw():
-    class method():
+    class amethod():
         handshake = ["handshake"]
         is_api_alive = ["isApiAlive"]
 
@@ -27,14 +27,14 @@ class Server(BaseHTTPRequestHandler):
     # GET sends back a Hello world message
     def do_GET(self):
         self._set_headers()
-        self.parse_parameters_and_run_API_method()
+        self.parse_parameters_and_run_API_amethod()
 	#===================================================================================================================
 	#
 	#													Api Methods
 	#
 	#===================================================================================================================
 
-    def parse_parameters_and_run_API_method(self):
+    def parse_parameters_and_run_API_amethod(self):
         parameters_string = self.path[2:]
         # Словарь с параметрами
         parameters_dict = urllib.parse.parse_qs(parameters_string)
@@ -42,16 +42,14 @@ class Server(BaseHTTPRequestHandler):
         # Проверяем не пустые ли параметры
         if parameters_string != "" :
             # Проверяем метод API, который надо запустить
-            if parameters_dict["method"] == jsnw.method.handshake:
-                users = list(map(int, parameters_dict["users"][0].split(",")))
-                print(users)
-                #вставить это в резалт
-                #test1 = VkWorker(debug=True)
-                test1 = VkWorker(debug=True).get_chains(users[0],users[1])
-                print(test1)
-                self.wfile.write(test1)
-                print("123")
-                #test1.get_chains_test_version(users[0], users[1])
+            if parameters_dict['formula'] == jsnw.amethod.handshake:
+                users = list(parameters_dict['users'][0].split(","))
+                print("Users = " + users[0] + ", " + users[1])
+                should_use_debug = False
+                if parameters_dict['shouldUseDebug'] == ['True']:
+                    should_use_debug = True
+                worker_result = VkWorker(debug=should_use_debug).get_chains(users[0],users[1])
+                self.wfile.write(worker_result)
             # Если параметр "method" не является одним из доступных списка API
             else :
                 self.make_response_with_not_enought_params()

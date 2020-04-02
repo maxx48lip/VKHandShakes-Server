@@ -32,7 +32,7 @@ class VkWorker:
         self.graph_name = graph_name
         self._debug = debug
         self.api_v = '5.103'
-        self.delay = 0.35
+        self.delay = 0.4
         self._result = {}
         self._database = {}
         self._download_queue = []
@@ -91,7 +91,7 @@ class VkWorker:
             if 'Rate limit reached' in [r['execute_errors'][i]['error_msg'] for i in range(len(r['execute_errors']))]:
                 return [set, token_i]
             self._debug_print('Execute errors: %s ' % (r['execute_errors']))
-        r = r['response']
+        r = r["response"]
         for x, id in enumerate(set):
             if r[x]:
                 self._database[id] = tuple(r[x]["items"])
@@ -182,7 +182,9 @@ class VkWorker:
         output.update({"result": all_chains_list})
         output.update({"resultCode": "1"})
         output.update({"resultDescription": 'Success'})
-        return json.dumps(output, sort_keys=True, indent=4, ensure_ascii=False, separators=(',', ': ')).encode()
+        funcResult = json.dumps(output, sort_keys=True, indent=4, ensure_ascii=False, separators=(',', ': ')).encode()
+        self._debug_print(funcResult.decode())
+        return funcResult
 
     @staticmethod
     def _make_targets(lst):

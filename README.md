@@ -53,7 +53,7 @@
 - `<enter password>` - enter GIT password (used 1 time for SSH session)
 
 ### Run
-- `python3.8 home/h/VKHandShakes-Server/server.py` - run server python script
-
+- `python3.8 /home/h/VKHandShakes-Server/server.py` - run server python script
+- `nohup` - for unlimitless script
 # Front IOS-App
 ...

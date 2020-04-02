@@ -29,7 +29,6 @@ class VKToken:
         else:
             self.config = configparser.ConfigParser()
             self.config.read(self._settings_path)
-            print(self.config)
             self.token_list = self.update(update=True)
 
     def _request_url(self, method_name, parameters, token_i):  # with token
