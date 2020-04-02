@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+Graphs/
 *.py[cod]
 *$py.class
 

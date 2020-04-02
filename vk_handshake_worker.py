@@ -172,7 +172,7 @@ class VkWorker:
                 user_name, user_last_name, user_photo, user_id = self.base_info(id)
                 user_url = 'https://vk.com/id{}'.format(id)
                 user_param.update({"name": user_name})
-                user_param.update({"last_name": user_last_name})
+                user_param.update({"lastName": user_last_name})
                 user_param.update({"url": user_url})
                 user_param.update({"photo": user_photo})
                 user_dict.update({"user": user_param})

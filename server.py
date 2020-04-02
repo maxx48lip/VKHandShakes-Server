@@ -9,25 +9,14 @@ from vk_handshake_worker import *
 class  jsnw():
     class amethod():
         handshake = ["handshake"]
-        is_api_alive = ["isApiAlive"]
 
+    str_users = "users"
+    str_method = "method"
     str_result = "result"
     str_result_description = "resultDescription"
     str_resultCode = "resultCode"
 
 class Server(BaseHTTPRequestHandler):
-    def _set_headers(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-
-    def do_HEAD(self):
-        self._set_headers()
-
-    # GET sends back a Hello world message
-    def do_GET(self):
-        self._set_headers()
-        self.parse_parameters_and_run_API_amethod()
 	#===================================================================================================================
 	#
 	#													Api Methods
@@ -42,14 +31,8 @@ class Server(BaseHTTPRequestHandler):
         # Проверяем не пустые ли параметры
         if parameters_string != "" :
             # Проверяем метод API, который надо запустить
-            if parameters_dict['formula'] == jsnw.amethod.handshake:
-                users = list(parameters_dict['users'][0].split(","))
-                print("Users = " + users[0] + ", " + users[1])
-                should_use_debug = False
-                if parameters_dict['shouldUseDebug'] == ['True']:
-                    should_use_debug = True
-                worker_result = VkWorker(debug=should_use_debug).get_chains(users[0],users[1])
-                self.wfile.write(worker_result)
+            if jsnw.str_method in parameters_dict and parameters_dict[jsnw.str_method] == jsnw.amethod.handshake:
+               self.make_response_for_handShakes_method(parameters_dict=parameters_dict)
             # Если параметр "method" не является одним из доступных списка API
             else :
                 self.make_response_with_not_enought_params()
@@ -60,10 +43,30 @@ class Server(BaseHTTPRequestHandler):
                 jsnw.str_result_description: "Success with nothing (No parameters given)." 
                 }).encode())
 
+    def make_response_for_handShakes_method(self, parameters_dict):
+        # Проверяем наличие параметра "users"
+        if jsnw.str_users in parameters_dict:
+            users = list(parameters_dict['users'][0].split(","))
+            # Проверяем что пришло 2 пользователя через запятую в параметре "users"
+            if len(users) == 2:
+                print("Users = " + users[0] + ", " + users[1])
+                should_use_debug = False
+                # Проверяем, что нужно использовать print в дебаге
+                if ('shouldUseDebug' in parameters_dict) and (parameters_dict['shouldUseDebug'] == ['True']):
+                    should_use_debug = True
+                worker_result = VkWorker(debug=should_use_debug).get_chains(users[0],users[1])
+                self.wfile.write(worker_result)
+            # Если пришло не 2 пользователя через запятую в параметре "users"
+            else:
+                self.make_response_with_not_enought_params()
+            # Если нет параметра "users"
+        else:
+            self.make_response_with_not_enought_params()
+
     def make_response_with_not_enought_params(self):
         self.wfile.write(json.dumps({
                     jsnw.str_resultCode: "-1",
-                    jsnw.str_result_description: "Can not resolve request with this paramters." 
+                    jsnw.str_result_description: "Can not resolve request with this parameters." 
                     }).encode())
 
 	#===================================================================================================================
@@ -71,6 +74,19 @@ class Server(BaseHTTPRequestHandler):
 	#									Do not Change File under that braket
 	#
 	#===================================================================================================================
+    def _set_headers(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+
+    def do_HEAD(self):
+        self._set_headers()
+
+    # GET sends back a Hello world message
+    def do_GET(self):
+        self._set_headers()
+        self.parse_parameters_and_run_API_amethod()
+
     # POST echoes the message adding a JSON field
     def do_POST(self):
         ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
@@ -96,7 +112,6 @@ class Server(BaseHTTPRequestHandler):
 def run(server_class=HTTPServer, handler_class=Server, port=8088):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-
     print('Starting httpd on port ' + str(port))
     httpd.serve_forever()
 
