@@ -15,13 +15,23 @@
 - `/?method=handshake&users=id100,id200`
 - `...`
 
-## Result Codes
+## Result Codes - Result Description
 - `0` - Success with nothing (API is alive)
 - `1` - Success
 
-- `-1` - Can not resolve request with this paramters
-- `-2` - ...
-- `-3` - ...
+- `-1` - Cannot resolve request with this parameters
+- `-2` - Unknown error
+- `-3` - All token are broken
+- `-4` - settings.ini is not exist
+- `-5` - ini \'state\' error
+- `-6` - Graph error
+- `-7` - _base_info error
+- `-8` - _response error
+- `-9` - _database_builder error
+- `-10` - _worker error
+- `-11` - _download_queue_builder error
+- `-12` - _check_vk_link error
+- `-13` - Token.update error
 
 ## Future Features
 
