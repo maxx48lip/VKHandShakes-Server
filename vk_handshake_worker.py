@@ -41,7 +41,7 @@ class VkWorker:
         try:
             self.t = Token()
         except Exception:
-            pass
+            self._debug_print('self.t = Token() error')
         self._graphs_dir = os.path.join(os.path.dirname(__file__), 'Graphs')
         self._graph_path = os.path.join(self._graphs_dir, self.graph_name)
         if os.path.exists(self._graph_path):
