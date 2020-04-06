@@ -194,7 +194,9 @@ class VkWorker:
             link = link.split('/')[-1]
             self._debug_print(link)
             self.t.update()
+            self._debug_print(link)
             self.t.save()
+            self._debug_print(link)
             r = requests.get(self._request_url('users.get', 'user_ids=%s&fields=photo' % link, 0)).json()
             self._debug_print(r)
             time.sleep(self.delay)
