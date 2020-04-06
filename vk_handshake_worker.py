@@ -54,7 +54,7 @@ class VkWorker:
             is_link1_valid, user1_name, user1_last_name, user1_photo, user1_id = self._check_vk_link(id1)
             is_link2_valid, user2_name, user2_last_name, user2_photo, user2_id = self._check_vk_link(id2)
             if not is_link1_valid or not is_link2_valid:
-                return self._response(result_code=-1, result_description='Cannot resolve request with this parameters')
+                return self._response(result_code=-2, result_description='Cannot resolve request with this parameters')
             self._debug_print('id1:', user1_name, user1_last_name, user1_photo, user1_id)
             self._debug_print('id2:', user2_name, user2_last_name, user2_photo, user2_id)
             self._debug_print('{} tokens work'.format(self.t.number_of_token))
@@ -243,9 +243,10 @@ class VkWorker:
         id_in_output_chains = [int(id) for id in id_in_output_chains]
         return self._base_info(id_in_output_chains)
 
-    def _response(self, output_chains_list=[], result_code=1, result_description='Success'):
+    def _response(self, output_chains_list=[], result_code=1, result_description='Unknown error'):
         output = {}
         if result_code == 1:
+            result_description = 'Success'
             try:
                 all_chains_list = []
                 max_num_of_chains = 20
@@ -277,8 +278,7 @@ class VkWorker:
             except VkException as error:
                 return self._response(result_code=error.args[1], result_description=error.args[0])
             except Exception:
-
-                 VkException('_response error', -2)
+                VkException('_response error', -2)
         elif result_code == -2:
             output.update({"result": ''})
             output.update({"resultCode": "{}".format(result_code)})
@@ -400,4 +400,4 @@ class Token:
 
 if __name__ == '__main__':
     w = VkWorker(graph_name='graph1', debug=True)
-    print(w.get_chains(id1='1', id2='1', max_chain_length=10).decode())
+    print(w.get_chains(id1='100', id2='100', max_chain_length=10).decode())

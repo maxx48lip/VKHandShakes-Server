@@ -19,7 +19,7 @@
 - `0` - Success with nothing (API is alive)
 - `1` - Success
 
-- `-1` - Cannot resolve request with this parameters
+- `-2` - Cannot resolve request with this parameters
 - `-2` - Unknown error
 - `-2` - All token are broken
 - `-2` - settings.ini is not exist
