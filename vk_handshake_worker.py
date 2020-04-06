@@ -189,8 +189,10 @@ class VkWorker:
         Returns: is_link_valid, r['first_name'], r['last_name'], r['photo'], r['id']
 
         """
+        self._debug_print(link)
         try:
             link = link.split('/')[-1]
+            self._debug_print(link)
             self.t.update()
             self.t.save()
             r = requests.get(self._request_url('users.get', 'user_ids=%s&fields=photo' % link, 0)).json()
@@ -279,10 +281,6 @@ class VkWorker:
                 return self._response(result_code=error.args[1], result_description=error.args[0])
             except Exception:
                 VkException('_response error', -2)
-        elif result_code == -2:
-            output.update({"result": ''})
-            output.update({"resultCode": "{}".format(result_code)})
-            output.update({"resultDescription": '{}'.format(result_description)})
         else:
             output.update({"result": ''})
             output.update({"resultCode": "{}".format(result_code)})
@@ -400,4 +398,4 @@ class Token:
 
 if __name__ == '__main__':
     w = VkWorker(graph_name='graph1', debug=True)
-    print(w.get_chains(id1='100', id2='100', max_chain_length=10).decode())
+    print(w.get_chains(id1='й35и4уем', id2='100', max_chain_length=10).decode())
