@@ -309,7 +309,7 @@ class Token:
 
     def __init__(self, debug=False):
         self.debug = debug
-        print(1)
+        print(11)
         self._settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
         print(2)
         self._returned_token_num_list = []
