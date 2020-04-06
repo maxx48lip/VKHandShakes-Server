@@ -309,17 +309,28 @@ class Token:
 
     def __init__(self, debug=False):
         self.debug = debug
+        self._debug_print(1)
         self._settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
+        self._debug_print(2)
         self._returned_token_num_list = []
+        self._debug_print(3)
         self.token_list = []
+        self._debug_print(4)
         self.number_of_token = 0
+        self._debug_print(5)
         self._api_v = '5.103'
+        self._debug_print(6)
         if not os.path.exists(self._settings_path):
+            self._debug_print(7)
             raise VkException('settings.ini is not exist', -2)
         else:
+            self._debug_print(8)
             self.config = configparser.ConfigParser()
+            self._debug_print(9)
             self.config.read(self._settings_path)
+            self._debug_print(10)
             self.token_list = self.update(update=True)
+            self._debug_print(11)
 
     def _request_url(self, method_name, parameters, token_i):  # with token
         req_url = 'https://api.vk.com/method/{method_name}?{parameters}&v={api_v}&access_token={token}'.format(
