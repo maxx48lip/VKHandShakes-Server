@@ -21,17 +21,17 @@
 
 - `-1` - Cannot resolve request with this parameters
 - `-2` - Unknown error
-- `-3` - All token are broken
-- `-4` - settings.ini is not exist
-- `-5` - ini \'state\' error
-- `-6` - Graph error
-- `-7` - _base_info error
-- `-8` - _response error
-- `-9` - _database_builder error
-- `-10` - _worker error
-- `-11` - _download_queue_builder error
-- `-12` - _check_vk_link error
-- `-13` - Token.update error
+- `-2` - All token are broken
+- `-2` - settings.ini is not exist
+- `-2` - ini \'state\' error
+- `-2` - Graph error
+- `-2` - _base_info error
+- `-2` - _response error
+- `-2` - _database_builder error
+- `-2` - _worker error
+- `-2` - _download_queue_builder error
+- `-2` - _check_vk_link error
+- `-2` - Token.update error
 
 ## Future Features
 
