@@ -350,6 +350,7 @@ class Token:
         """
         try:
             self.token_list = []
+            print(12)
             self._returned_token_num_list = []
             test_targets = '10'
             stop_period = 3600  # время, на протяжении которого токен недоступен после превышения количества запросов
@@ -361,11 +362,15 @@ class Token:
                     self.config.set('token_{}'.format(self._returned_token_num_list[token_num]), 'state', '0')
 
             number_of_tokens = int(self.config.get('settings', 'number_of_tokens'))
+            print(13)
             for token_num in range(number_of_tokens):
+                print(14)
                 token_i = self.config.get('token_{}'.format(token_num + 1), 'value')
                 if update:
+                    print(15)
                     r = requests.get(
                         self._request_url('execute.deepFriends', 'targets=%s' % test_targets, token_i)).json()
+                    self._debug_print(r)
                     if 'error' not in r.keys() and 'execute_errors' not in r.keys():
                         self.config.set('token_{}'.format(token_num + 1), 'stop_time', '')
                         self.config.set('token_{}'.format(token_num + 1), 'state', '1')
@@ -384,6 +389,7 @@ class Token:
                         if time.time() - float(stop_time) > stop_period:
                             r = requests.get(
                                 self._request_url('execute.deepFriends', 'targets=%s' % test_targets, token_i)).json()
+                            self._debug_print(r)
                             if 'error' not in r.keys() and 'execute_errors' not in r.keys():
                                 self.config.set('token_{}'.format(self._returned_token_num_list[token_num]),
                                                 'stop_time',
