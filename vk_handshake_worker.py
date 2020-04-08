@@ -189,14 +189,10 @@ class VkWorker:
         Returns: is_link_valid, r['first_name'], r['last_name'], r['photo'], r['id']
 
         """
-        self._debug_print(link)
         try:
             link = link.split('/')[-1]
-            self._debug_print(link)
             self.t.update()
-            self._debug_print(link)
             self.t.save()
-            self._debug_print(link)
             r = requests.get(self._request_url('users.get', 'user_ids=%s&fields=photo' % link, 0)).json()
             self._debug_print(r)
             time.sleep(self.delay)
@@ -309,28 +305,17 @@ class Token:
 
     def __init__(self, debug=False):
         self.debug = debug
-        print(111)
         self._settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
-        print(2)
         self._returned_token_num_list = []
-        print(3)
         self.token_list = []
-        print(4)
         self.number_of_token = 0
-        print(5)
         self._api_v = '5.103'
-        print(6)
         if not os.path.exists(self._settings_path):
-            print(7)
             raise VkException('settings.ini is not exist', -2)
         else:
-            print(8)
             self.config = configparser.ConfigParser()
-            print(9)
             self.config.read(self._settings_path)
-            print(10)
             self.token_list = self.update(update=True)
-            print(11)
 
     def _request_url(self, method_name, parameters, token_i):  # with token
         req_url = 'https://api.vk.com/method/{method_name}?{parameters}&v={api_v}&access_token={token}'.format(
@@ -411,4 +396,4 @@ class Token:
 
 if __name__ == '__main__':
     w = VkWorker(graph_name='graph1', debug=True)
-    print(w.get_chains(id1='й35и4уем', id2='100', max_chain_length=10).decode())
+    print(w.get_chains(id1='1', id2='1', max_chain_length=10).decode())
