@@ -398,4 +398,4 @@ class Token:
 
 if __name__ == '__main__':
     w = VkWorker(graph_name='graph1', debug=True)
-    print(w.get_chains(id1='id221436497', id2='sars_coronavirus', max_chain_length=10).decode())
+    print(w.get_chains(id1='1', id2='1', max_chain_length=10).decode())
