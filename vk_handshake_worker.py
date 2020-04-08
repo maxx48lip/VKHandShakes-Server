@@ -346,7 +346,6 @@ class Token:
                     self.config.set('token_{}'.format(self._returned_token_num_list[token_num]), 'state', '0')
 
             number_of_tokens = int(self.config.get('settings', 'number_of_tokens'))
-            print('number_of_tokens = {}'.format(number_of_tokens))
             for token_num in range(number_of_tokens):
                 token_i = self.config.get('token_{}'.format(token_num + 1), 'value')
                 if update:
@@ -399,4 +398,4 @@ class Token:
 
 if __name__ == '__main__':
     w = VkWorker(graph_name='graph1', debug=True)
-    print(w.get_chains(id1='1', id2='1', max_chain_length=10).decode())
+    print(w.get_chains(id1='id221436497', id2='sars_coronavirus', max_chain_length=10).decode())
